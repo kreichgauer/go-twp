@@ -1,10 +1,11 @@
 package twp
 
 import (
-    "encoding/binary"
     "bufio"
-    "fmt"
+    "bytes"
+    "encoding/binary"
     "errors"
+    "fmt"
     "io"
 )
 
@@ -13,11 +14,11 @@ var (
 )
 
 type Reader struct {
-    *bufio.Reader
+    bufio.Reader
 }
 
 func NewReader(rd io.Reader) (*Reader) {
-    return &Reader{bufio.NewReader(rd)}
+    return &Reader{*bufio.NewReader(rd)}
 }
 
 func (rd *Reader) ReadFull(buf []byte) (err error) {
@@ -40,18 +41,19 @@ func (rd *Reader) ReadValue() (val string, err error) {
     fmt.Printf("Read tag %d\n", tag)
     switch {
     case tag == 0:
-        panic("End-Of-Content not implemented.")
+        val = ""
     case 1 == tag:
-        return "", nil
+        val = ""
     case 2 == tag:
         panic("struct not implemented.")
     case 3 == tag:
         panic("sequence not implemented.")
     case 4 <= tag && tag <= 11:
-        panic("Message/Union not implemented")
+        id := tag - 4
+        val, err = rd.ReadMessage(id)
     case 12 == tag:
         panic("Extension not implemnted")
-    case 13 <= tag:
+    case 13 == tag:
         var v uint8
         v, err = rd.ReadShortInt()
         val = fmt.Sprintf("%d", v)
@@ -71,12 +73,29 @@ func (rd *Reader) ReadValue() (val string, err error) {
         length := int(tag - 17)
         val, err = rd.ReadShortString(length)
     case 127 == tag:
-        // val rd.ReadLongString()
+        val, err = rd.ReadLongString()
     case 128 <= tag && tag <= 159:
         err = ErrReservedTag
 
     }
     return val, err
+}
+
+func (rd *Reader) ReadMessage(tag byte) (val string, err error) {
+    fmt.Printf("Message ID %d\n", tag)
+    var buffer bytes.Buffer
+    for {
+        v, err := rd.ReadValue()
+        if err != nil {
+            return "", err
+        }
+        if v == "" {
+            fmt.Println("Message End")
+            break
+        }
+        buffer.WriteString(v)
+    }
+    return buffer.String(), nil
 }
 
 func (rd *Reader) ReadShortInt() (val uint8, err error) {
