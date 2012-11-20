@@ -28,10 +28,16 @@ func main() {
     if err := wr.InitWithProtocol(2); err != nil {
         fmt.Println(err)
     }
-    if _, err := wr.Write([]byte("\x04\x1eHello, World!\x00")); err != nil {
+    if _, err := wr.Write([]byte("\x04")); err != nil {
         panic(err)
     }
-    wr.Flush()
+    if err := wr.WriteString("Hello, World!"); err != nil {
+
+    }
+    if _, err := wr.Write([]byte{0}); err != nil {
+        panic(err)
+    }
+    // wr.Flush()
 
     fmt.Println("Sent")
 
