@@ -34,54 +34,53 @@ func (rd *Reader) ReadFull(buf []byte) (err error) {
 }
 
 func (rd *Reader) ReadValue() (val string, err error) {
-    var tag byte
-    if tag, err = rd.ReadByte(); err != nil {
+    var tag Tag
+    if err = binary.Read(rd, binary.BigEndian, &tag); err != nil {
         return "", err
     }
     fmt.Printf("Read tag %d\n", tag)
     switch {
-    case tag == 0:
+    case EndOfContent == tag:
         val = ""
-    case 1 == tag:
+    case NoValue == tag:
         val = ""
-    case 2 == tag:
+    case Struct == tag:
         panic("struct not implemented.")
-    case 3 == tag:
+    case Sequence == tag:
         panic("sequence not implemented.")
-    case 4 <= tag && tag <= 11:
-        id := tag - 4
+    case MessageOrUnion <= tag && tag <= MessageOrUnionEnd:
+        id := int(tag - 4)
         val, err = rd.ReadMessage(id)
-    case 12 == tag:
+    case RegisteredExtension == tag:
         panic("Extension not implemnted")
-    case 13 == tag:
+    case ShortInteger == tag:
         var v uint8
         v, err = rd.ReadShortInt()
         val = fmt.Sprintf("%d", v)
-    case 14 == tag:
+    case LongInteger == tag:
         var v uint32
         v, err = rd.ReadLongInt()
         val = fmt.Sprintf("%d", v)
-    case 15 == tag:
+    case ShortBinary == tag:
         var v []byte
         v, err = rd.ReadShortBinary()
         val = fmt.Sprintf("%s", v)
-    case 16 == tag:
+    case LongBinary == tag:
         var v []byte
          v, err = rd.ReadLongBinary()
          val = fmt.Sprintf("%s", v)
-    case 17 <= tag && tag <= 126:
+    case ShortString <= tag && tag < LongString:
         length := int(tag - 17)
         val, err = rd.ReadShortString(length)
-    case 127 == tag:
+    case LongString == tag:
         val, err = rd.ReadLongString()
-    case 128 <= tag && tag <= 159:
+    case Reserved <= tag && tag <= ReservedEnd:
         err = ErrReservedTag
-
     }
     return val, err
 }
 
-func (rd *Reader) ReadMessage(tag byte) (val string, err error) {
+func (rd *Reader) ReadMessage(tag int) (val string, err error) {
     fmt.Printf("Message ID %d\n", tag)
     var buffer bytes.Buffer
     for {
