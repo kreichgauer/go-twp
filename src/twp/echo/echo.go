@@ -32,7 +32,7 @@ func main() {
         panic(err)
     }
     if err := wr.WriteString("Hello, World!"); err != nil {
-
+        panic(err)
     }
     if _, err := wr.Write([]byte{0}); err != nil {
         panic(err)
