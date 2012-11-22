@@ -2,7 +2,6 @@ package twp
 
 import (
     "bufio"
-    "bytes"
     "encoding/binary"
     "errors"
     "fmt"
@@ -11,6 +10,7 @@ import (
 
 var (
     ErrReservedTag = errors.New("Reserved tag read")
+    ErrInvalidTag = errors.New("Invalid tag read")
 )
 
 type Reader struct {
@@ -33,68 +33,82 @@ func (rd *Reader) ReadFull(buf []byte) (err error) {
     return nil
 }
 
-func (rd *Reader) ReadValue() (val string, err error) {
+func (rd *Reader) ReadSequence(seq *[]Value) (err error) {
     var tag Tag
-    if err = binary.Read(rd, binary.BigEndian, &tag); err != nil {
-        return "", err
+    var v Value
+    for {
+        if err := binary.Read(rd, binary.BigEndian, &tag); err != nil {
+            return err
+        }
+        fmt.Printf("Read tag %d\n", tag)
+        switch {
+        case EndOfContent == tag:
+            return nil
+        case NoValue == tag:
+            *seq = append(*seq, nil)
+        case Struct == tag:
+            panic("struct not implemented.")
+        case Sequence == tag:
+            panic("sequence not implemented.")
+        case MessageOrUnion <= tag && tag <= MessageOrUnionEnd:
+            // id := int(tag - 4)
+            // val, err = rd.ReadMessage(id)
+            panic("union not implemented.")
+        case RegisteredExtension == tag:
+            panic("extension not implemneted.")
+        case ShortInteger == tag:
+            if v, err = rd.ReadShortInt(); err != nil {
+                return err
+            }
+            *seq = append(*seq, v)
+        case LongInteger == tag:
+            if v, err = rd.ReadLongInt(); err != nil {
+                return err
+            }
+            *seq = append(*seq, v)
+        case ShortBinary == tag:
+            if v, err = rd.ReadShortBinary(); err != nil {
+                return err
+            }
+            *seq = append(*seq, v)
+        case LongBinary == tag:
+             if v, err = rd.ReadLongBinary(); err != nil {
+                return err
+             }
+             *seq = append(*seq, v)
+        case ShortString <= tag && tag < LongString:
+            length := int(tag - 17)
+            if v, err = rd.ReadShortString(length); err != nil {
+               return err
+            }
+            *seq = append(*seq, v)
+        case LongString == tag:
+            if v, err = rd.ReadLongString(); err != nil {
+               return err
+            }
+            *seq = append(*seq, v)
+        case Reserved <= tag && tag <= ReservedEnd:
+            return ErrReservedTag
+        default:
+            return ErrInvalidTag
+        }
     }
-    fmt.Printf("Read tag %d\n", tag)
-    switch {
-    case EndOfContent == tag:
-        val = ""
-    case NoValue == tag:
-        val = ""
-    case Struct == tag:
-        panic("struct not implemented.")
-    case Sequence == tag:
-        panic("sequence not implemented.")
-    case MessageOrUnion <= tag && tag <= MessageOrUnionEnd:
-        id := int(tag - 4)
-        val, err = rd.ReadMessage(id)
-    case RegisteredExtension == tag:
-        panic("Extension not implemnted")
-    case ShortInteger == tag:
-        var v uint8
-        v, err = rd.ReadShortInt()
-        val = fmt.Sprintf("%d", v)
-    case LongInteger == tag:
-        var v uint32
-        v, err = rd.ReadLongInt()
-        val = fmt.Sprintf("%d", v)
-    case ShortBinary == tag:
-        var v []byte
-        v, err = rd.ReadShortBinary()
-        val = fmt.Sprintf("%s", v)
-    case LongBinary == tag:
-        var v []byte
-         v, err = rd.ReadLongBinary()
-         val = fmt.Sprintf("%s", v)
-    case ShortString <= tag && tag < LongString:
-        length := int(tag - 17)
-        val, err = rd.ReadShortString(length)
-    case LongString == tag:
-        val, err = rd.ReadLongString()
-    case Reserved <= tag && tag <= ReservedEnd:
-        err = ErrReservedTag
-    }
-    return val, err
+    return nil
 }
 
-func (rd *Reader) ReadMessage(tag int) (val string, err error) {
-    fmt.Printf("Message ID %d\n", tag)
-    var buffer bytes.Buffer
-    for {
-        v, err := rd.ReadValue()
-        if err != nil {
-            return "", err
-        }
-        if v == "" {
-            fmt.Println("Message End")
-            break
-        }
-        buffer.WriteString(v)
+func (rd *Reader) ReadMessage() (val *RawMessage, err error) {
+    var tag uint8
+    if err = binary.Read(rd, binary.BigEndian, &tag); err != nil {
+        return nil, err
     }
-    return buffer.String(), nil
+    id := tag - 4
+    fmt.Printf("Message ID %d\n", id)
+    val = new(RawMessage)
+    val.Id = id
+    if err = rd.ReadSequence(&val.Fields); err != nil {
+        return nil, err
+    }
+    return val, nil
 }
 
 func (rd *Reader) ReadShortInt() (val uint8, err error) {

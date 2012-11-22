@@ -41,9 +41,10 @@ func main() {
 
     fmt.Println("Sent")
 
-    msg, err := rd.ReadValue(); 
-    if err != nil {
+    var msg *twp.RawMessage
+    if msg, err = rd.ReadMessage(); err != nil {
         fmt.Printf("Error: %s\n", err)
+        return
     }
-    fmt.Println(msg)
+    fmt.Printf("%v", msg)
 }
