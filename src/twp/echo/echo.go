@@ -23,18 +23,18 @@ func main() {
     fmt.Println("Conn: ", conn)
 
     d := twp.NewDecoder(conn)
-    wr := twp.NewWriter(conn)
+    en := twp.NewEncoder(conn)
     
-    if err := wr.InitWithProtocol(2); err != nil {
+    if err := en.InitWithProtocol(2); err != nil {
         fmt.Println(err)
     }
-    if _, err := wr.Write([]byte("\x04")); err != nil {
+    if _, err := en.Write([]byte("\x04")); err != nil {
         panic(err)
     }
-    if err := wr.WriteString("Hello, World!"); err != nil {
+    if err := en.EncodeString("Hello, World!"); err != nil {
         panic(err)
     }
-    if _, err := wr.Write([]byte{0}); err != nil {
+    if _, err := en.Write([]byte{0}); err != nil {
         panic(err)
     }
     // wr.Flush()

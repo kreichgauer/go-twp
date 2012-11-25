@@ -6,40 +6,45 @@ import (
     "io"
 )
 
-type Writer struct {
-    io.Writer
+type Encoder struct {
+    wr io.Writer
 }
 
 const twpMagic = "TWP3\n"
 
-func NewWriter(wr io.Writer) (*Writer) {
-    return &Writer{wr}
+func NewEncoder(wr io.Writer) (*Encoder) {
+    return &Encoder{wr}
 }
 
-func (wr *Writer) InitWithProtocol(id int) (err error) {
-    if err = wr.WriteMagic(); err != nil {
+func (en *Encoder) InitWithProtocol(id int) (err error) {
+    if err = en.EncodeMagic(); err != nil {
         return err
     }
-    if err = wr.WriteProtocolId(id); err != nil {
+    if err = en.EncodeProtocolId(id); err != nil {
         return err
     }
     return nil
 }
 
-func (wr *Writer) WriteMagic() (err error) {
-    _, err = wr.Write([]byte(twpMagic))
+// FIXME Remove
+func (en *Encoder) Write(buf []byte) (n int, err error) {
+    return en.wr.Write(buf)
+}
+
+func (en *Encoder) EncodeMagic() (err error) {
+    _, err = en.wr.Write([]byte(twpMagic))
     return err
 }
 
-func (wr *Writer) WriteProtocolId(id int) (err error) {
-    return wr.WriteInteger(id)
+func (en *Encoder) EncodeProtocolId(id int) (err error) {
+    return en.EncodeInteger(id)
 }
 
-func (wr *Writer) WriteInteger(val int) (err error) {
-    return binary.Write(wr, binary.BigEndian, []byte{13, byte(val)})
+func (en *Encoder) EncodeInteger(val int) (err error) {
+    return binary.Write(en.wr, binary.BigEndian, []byte{13, byte(val)})
 }
 
-func (wr *Writer) WriteString(val string) (err error) {
+func (en *Encoder) EncodeString(val string) (err error) {
     var buf bytes.Buffer
     if length := len(val); length <= 109 {
         buf.WriteByte(byte(ShortString + length))
@@ -48,6 +53,6 @@ func (wr *Writer) WriteString(val string) (err error) {
         binary.Write(&buf, binary.BigEndian, length)
     }
     buf.WriteString(val)
-    _, err = wr.Write(buf.Bytes())
+    _, err = en.wr.Write(buf.Bytes())
     return err
 }

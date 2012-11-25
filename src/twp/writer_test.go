@@ -7,11 +7,12 @@ import (
     "testing"
 )
 
-func WriteString(t *testing.T) {
+// FIXME
+func EncodeString(t *testing.T) {
     var buf, buf2 bytes.Buffer
-    wr := NewWriter(&buf)
+    en := NewEncoder(&buf)
     hw := "Hello, World!\n"
-    if err := wr.WriteString(hw); err != nil {
+    if err := en.EncodeString(hw); err != nil {
         pFatal(err, t)
     }
     buf2.WriteByte(byte(ShortString + len(hw)))
@@ -21,7 +22,7 @@ func WriteString(t *testing.T) {
     buf.Reset()
     buf2.Reset()
     hw = strings.Repeat(hw, 100)
-    if err := wr.WriteString(hw); err != nil {
+    if err := en.EncodeString(hw); err != nil {
         pFatal(err, t)
     }
     buf2.WriteByte(LongString)
