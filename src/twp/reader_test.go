@@ -7,27 +7,14 @@ import (
     "testing"
 )
 
-func TestReadFull(t *testing.T) {
-    buf := []byte{1, 2, 3, 4, 5, 6}
-    src := bytes.NewReader(buf)
-    r := NewReader(src)
-    dst := make([]byte, 6)
-    if err := r.ReadFull(dst); err != nil {
-        t.Fatalf("Error: %s", err)
-    }
-    if !bytes.Equal(buf, dst) {
-        t.Fatalf("Expected %x to be %x", dst, buf)
-    }
-}
-
 func TestReadShortInt(t *testing.T) {
     var (
         val uint8
         err error
     )
     buf := bytes.NewReader([]byte{42})
-    r := NewReader(buf)
-    if val, err = r.ReadShortInt(); err != nil {
+    d := NewDecoder(buf)
+    if val, err = d.DecodeShortInt(); err != nil {
         t.Errorf("%s", err)
     }
     if val != 42 {
@@ -41,8 +28,8 @@ func TestReadLongInt(t *testing.T) {
         err error
     )
     buf := bytes.NewReader([]byte{1, 0, 0, 0})
-    r := NewReader(buf)
-    if val, err = r.ReadLongInt(); err != nil {
+    d := NewDecoder(buf)
+    if val, err = d.DecodeLongInt(); err != nil {
         t.Errorf("%s", err)
     }
     if val != 16777216 {
@@ -53,8 +40,8 @@ func TestReadLongInt(t *testing.T) {
 func TestReadShortBinary(t *testing.T) {
     buf := []byte{5, 1, 2, 3, 4, 5}
     src := bytes.NewReader(buf)
-    r := NewReader(src)
-    dst, err := r.ReadShortBinary()
+    d := NewDecoder(src)
+    dst, err := d.DecodeShortBinary()
     if err != nil {
         t.Fatalf("Error: %s", err)
     }
@@ -75,8 +62,8 @@ func TestReadLongBinary(t *testing.T) {
         data[i] = 42
     }
     src := bytes.NewReader(buf[:])
-    r := NewReader(src)
-    dst, err := r.ReadLongBinary()
+    d := NewDecoder(src)
+    dst, err := d.DecodeLongBinary()
     if err != nil {
         t.Fatalf("Error: %s", err)
     }
@@ -89,8 +76,8 @@ func TestReadShortString(t *testing.T) {
     length := 109
     str := strings.Repeat("a", length)
     buf := bytes.NewBufferString(str)
-    r := NewReader(buf)
-    s, err := r.ReadShortString(length)
+    d := NewDecoder(buf)
+    s, err := d.DecodeShortString(length)
     if err != nil {
         pError(err, t)
     }
@@ -104,8 +91,8 @@ func TestReadLongString(t *testing.T) {
     str := strings.Repeat("a", int(length))
     data := buf[4:]
     copy(data, []byte(str))
-    r := NewReader(bytes.NewReader(buf))
-    s, err := r.ReadLongString()
+    d := NewDecoder(bytes.NewReader(buf))
+    s, err := d.DecodeLongString()
     if err != nil {
         pError(err, t)
     }

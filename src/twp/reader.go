@@ -12,19 +12,19 @@ var (
     ErrInvalidTag = errors.New("Invalid tag read")
 )
 
-type Reader struct {
+type Decoder struct {
     rd io.Reader
 }
 
-func NewReader(rd io.Reader) (*Reader) {
-    return &Reader{rd}
+func NewDecoder(rd io.Reader) (*Decoder) {
+    return &Decoder{rd}
 }
 
-func (r *Reader) ReadSequence(seq *[]Value) (err error) {
+func (d *Decoder) DecodeSequence(seq *[]Value) (err error) {
     var tag Tag
     var v Value
     for {
-        if err := binary.Read(r.rd, binary.BigEndian, &tag); err != nil {
+        if err := binary.Read(d.rd, binary.BigEndian, &tag); err != nil {
             return err
         }
         fmt.Printf("Read tag %d\n", tag)
@@ -44,33 +44,33 @@ func (r *Reader) ReadSequence(seq *[]Value) (err error) {
         case RegisteredExtension == tag:
             panic("extension not implemneted.")
         case ShortInteger == tag:
-            if v, err = r.ReadShortInt(); err != nil {
+            if v, err = d.DecodeShortInt(); err != nil {
                 return err
             }
             *seq = append(*seq, v)
         case LongInteger == tag:
-            if v, err = r.ReadLongInt(); err != nil {
+            if v, err = d.DecodeLongInt(); err != nil {
                 return err
             }
             *seq = append(*seq, v)
         case ShortBinary == tag:
-            if v, err = r.ReadShortBinary(); err != nil {
+            if v, err = d.DecodeShortBinary(); err != nil {
                 return err
             }
             *seq = append(*seq, v)
         case LongBinary == tag:
-             if v, err = r.ReadLongBinary(); err != nil {
+             if v, err = d.DecodeLongBinary(); err != nil {
                 return err
              }
              *seq = append(*seq, v)
         case ShortString <= tag && tag < LongString:
             length := int(tag - 17)
-            if v, err = r.ReadShortString(length); err != nil {
+            if v, err = d.DecodeShortString(length); err != nil {
                return err
             }
             *seq = append(*seq, v)
         case LongString == tag:
-            if v, err = r.ReadLongString(); err != nil {
+            if v, err = d.DecodeLongString(); err != nil {
                return err
             }
             *seq = append(*seq, v)
@@ -83,73 +83,73 @@ func (r *Reader) ReadSequence(seq *[]Value) (err error) {
     return nil
 }
 
-func (r *Reader) ReadMessage() (val *RawMessage, err error) {
+func (d *Decoder) DecodeMessage() (val *RawMessage, err error) {
     var tag uint8
-    if err = binary.Read(r.rd, binary.BigEndian, &tag); err != nil {
+    if err = binary.Read(d.rd, binary.BigEndian, &tag); err != nil {
         return nil, err
     }
     id := tag - 4
     fmt.Printf("Message ID %d\n", id)
     val = new(RawMessage)
     val.Id = id
-    if err = r.ReadSequence(&val.Fields); err != nil {
+    if err = d.DecodeSequence(&val.Fields); err != nil {
         return nil, err
     }
     return val, nil
 }
 
-func (r *Reader) ReadShortInt() (val uint8, err error) {
-    err = binary.Read(r.rd, binary.BigEndian, &val)
+func (d *Decoder) DecodeShortInt() (val uint8, err error) {
+    err = binary.Read(d.rd, binary.BigEndian, &val)
     return val, err
 }
 
-func (r *Reader) ReadLongInt() (val uint32, err error) {
-    err = binary.Read(r.rd, binary.BigEndian, &val)
+func (d *Decoder) DecodeLongInt() (val uint32, err error) {
+    err = binary.Read(d.rd, binary.BigEndian, &val)
     return val, err
 }
 
-func (r *Reader) ReadShortBinary() (val []byte, err error) {
+func (d *Decoder) DecodeShortBinary() (val []byte, err error) {
     var l uint8
-    if err = binary.Read(r.rd, binary.BigEndian, &l); err != nil {
+    if err = binary.Read(d.rd, binary.BigEndian, &l); err != nil {
         return nil, err
     }
     val = make([]byte, l)
-    if _, err = io.ReadFull(r.rd, val); err != nil {
+    if _, err = io.ReadFull(d.rd, val); err != nil {
         return nil, err
     }
     return val, nil
 }
 
-func (r *Reader) ReadLongBinary() (val []byte, err error) {
+func (d *Decoder) DecodeLongBinary() (val []byte, err error) {
     var l uint32
-    if err = binary.Read(r.rd, binary.BigEndian, &l); err != nil {
+    if err = binary.Read(d.rd, binary.BigEndian, &l); err != nil {
         return nil, err
     }
     val = make([]byte, l)
-    if _, err = io.ReadFull(r.rd, val); err != nil {
+    if _, err = io.ReadFull(d.rd, val); err != nil {
         return nil, err
     }
     return val, nil
 }
 
-func (r *Reader) ReadShortString(length int) (val string, err error) {
+func (d *Decoder) DecodeShortString(length int) (val string, err error) {
     if !(0 <= length && length <= 109) {
         return "", fmt.Errorf("Invalid short string length %d", length)
     }
     buf := make([]byte, length)
-    if _, err = io.ReadFull(r.rd, buf); err != nil {
+    if _, err = io.ReadFull(d.rd, buf); err != nil {
         return "", err
     }
     return string(buf), nil
 }
 
-func (r *Reader) ReadLongString() (val string, err error) {
+func (d *Decoder) DecodeLongString() (val string, err error) {
     var length uint32
-    if err = binary.Read(r.rd, binary.BigEndian, &length); err != nil {
+    if err = binary.Read(d.rd, binary.BigEndian, &length); err != nil {
         return "", err
     }
     buf := make([]byte, length)
-    if _, err = io.ReadFull(r.rd, buf); err != nil {
+    if _, err = io.ReadFull(d.rd, buf); err != nil {
         return "", err
     }
     return string(buf), nil
