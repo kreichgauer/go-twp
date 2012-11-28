@@ -3,21 +3,21 @@ package twp
 type Tag uint8
 
 const (
-    EndOfContent        = 0
-    NoValue             = 1
-    Struct              = 2
-    Sequence            = 3
-    MessageOrUnion      = 4
-    MessageOrUnionEnd   = 11
-    RegisteredExtension = 12
-    ShortInteger        = 13
-    LongInteger         = 14
-    ShortBinary         = 15
-    LongBinary          = 16
-    ShortString         = 17
-    LongString          = 127
-    Reserved            = 128
-    ReservedEnd         = 159
-    ApplicationType     = 160
-    ApplicationTypeEnd  = 255
+    EndOfContentTag        = 0
+    NoValueTag             = 1
+    StructTag              = 2
+    SequenceTag            = 3
+    MessageOrUnionTag      = 4
+    MessageOrUnionEndTag   = 11
+    RegisteredExtensionTag = 12
+    ShortIntegerTag        = 13
+    LongIntegerTag         = 14
+    ShortBinaryTag         = 15
+    LongBinaryTag          = 16
+    ShortStringTag         = 17
+    LongStringTag          = 127
+    ReservedTag            = 128
+    ReservedEndTag         = 159
+    ApplicationTypeTag     = 160
+    ApplicationTypeEndTag  = 255
 )

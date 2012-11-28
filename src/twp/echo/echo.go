@@ -22,7 +22,7 @@ func main() {
     defer conn.Close()
     fmt.Println("Conn: ", conn)
 
-    d := twp.NewDecoder(conn)
+    de := twp.NewDecoder(conn)
     en := twp.NewEncoder(conn)
     
     if err := en.InitWithProtocol(2); err != nil {
@@ -41,8 +41,8 @@ func main() {
 
     fmt.Println("Sent")
 
-    var msg *twp.RawMessage
-    if msg, err = d.DecodeMessage(); err != nil {
+    var msg *twp.Message
+    if msg, err = de.DecodeMessage(); err != nil {
         fmt.Printf("Error: %s\n", err)
         return
     }

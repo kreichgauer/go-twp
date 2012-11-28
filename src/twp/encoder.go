@@ -47,9 +47,9 @@ func (en *Encoder) EncodeInteger(val int) (err error) {
 func (en *Encoder) EncodeString(val string) (err error) {
     var buf bytes.Buffer
     if length := len(val); length <= 109 {
-        buf.WriteByte(byte(ShortString + length))
+        buf.WriteByte(byte(ShortStringTag + length))
     } else {
-        buf.WriteByte(LongString)
+        buf.WriteByte(LongStringTag)
         binary.Write(&buf, binary.BigEndian, length)
     }
     buf.WriteString(val)
